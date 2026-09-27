@@ -609,7 +609,7 @@ function FormField({
           onChange(event.target.value)
         }
         placeholder={placeholder}
-        className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:bg-white"
+        className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-400 focus:bg-white"
       />
     </div>
   );
