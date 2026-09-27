@@ -1,326 +1,403 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
-  ArrowRight,
-  LockKeyhole,
-  Mail,
-  User,
+  Building2,
+  Bell,
   ShieldCheck,
+  Users,
+  Brain,
+  Save,
   Loader2,
 } from "lucide-react";
 
+import Sidebar from "../components/Sidebar";
+import Header from "../components/Header";
 import { createClient } from "../../lib/supabase";
 
-export default function LoginPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const [isSignUp, setIsSignUp] = useState(false);
+export default function SettingsPage() {
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [organization, setOrganization] =
+    useState("RxNexus Demo Practice");
 
-  const [loading, setLoading] = useState(false);
+  const [aiRecommendations, setAiRecommendations] =
+    useState(true);
+  const [patientNotifications, setPatientNotifications] =
+    useState(true);
+  const [automaticEscalation, setAutomaticEscalation] =
+    useState(true);
+  const [emailNotifications, setEmailNotifications] =
+    useState(true);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
 
-  const handleSubmit = async (
-    event: FormEvent<HTMLFormElement>
-  ) => {
-    event.preventDefault();
+  useEffect(() => {
+    const loadProfile = async () => {
+      const supabase = createClient();
 
-    setLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      setEmail(user.email || "");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setFullName(profile.full_name);
+        setRole(profile.role);
+      }
+
+      setLoading(false);
+    };
+
+    loadProfile();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
     setMessage("");
-    setError("");
 
     const supabase = createClient();
 
-    if (isSignUp) {
-      if (!fullName.trim()) {
-        setError("Please enter your full name.");
-        setLoading(false);
-        return;
-      }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            full_name: fullName.trim(),
-          },
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
-
-      if (data.user) {
-        setMessage(
-          "Account created successfully. Redirecting..."
-        );
-
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 700);
-      }
-
-      setLoading(false);
+    if (!user) {
+      setSaving(false);
       return;
     }
 
-    const { error } =
-      await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
 
     if (error) {
-      setError(error.message);
-      setLoading(false);
+      setMessage("Unable to save profile.");
+      setSaving(false);
       return;
     }
 
-    const redirect =
-      searchParams.get("redirect") || "/dashboard";
-
-    router.push(redirect);
-    router.refresh();
+    setMessage("Profile saved successfully.");
+    setSaving(false);
   };
 
-  const toggleMode = () => {
-    setIsSignUp(!isSignUp);
-    setMessage("");
-    setError("");
-  };
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <Loader2
+          size={28}
+          className="animate-spin text-blue-600"
+        />
+      </div>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-slate-950">
-      <div className="grid min-h-screen lg:grid-cols-2">
-        <section className="hidden lg:flex flex-col justify-between border-r border-white/10 bg-slate-950 p-12 text-white">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600">
-                <ShieldCheck size={24} />
-              </div>
+    <div className="min-h-screen bg-slate-50">
+      <Sidebar />
 
-              <div>
-                <p className="text-xl font-bold">
-                  RxNexus
-                </p>
+      <div className="ml-64">
+        <Header />
 
-                <p className="text-xs text-slate-400">
-                  Connect. Resolve. Complete.
-                </p>
-              </div>
-            </div>
+        <main className="p-8">
+          <div className="mb-8">
+            <p className="text-sm text-slate-400">
+              Configuration
+            </p>
 
-            <div className="mt-24 max-w-lg">
-              <p className="text-sm font-medium text-blue-400">
-                REFILL OPERATIONS PLATFORM
-              </p>
+            <h1 className="mt-1 text-3xl font-bold text-slate-900">
+              Settings
+            </h1>
 
-              <h1 className="mt-5 text-5xl font-bold leading-tight">
-                Resolve refill blockers before they become delays.
-              </h1>
-
-              <p className="mt-6 text-lg leading-8 text-slate-400">
-                RxNexus helps physician practices, providers, and
-                pharmacies understand why a refill is stuck, who
-                needs to act, and what happens next.
-              </p>
-            </div>
+            <p className="mt-2 text-sm text-slate-500">
+              Manage your RxNexus profile and workflow preferences.
+            </p>
           </div>
 
-          <div className="flex items-center gap-3 text-sm text-slate-500">
-            <ShieldCheck size={17} />
-            <span>
-              Synthetic demo environment
-            </span>
-          </div>
-        </section>
-
-        <section className="flex items-center justify-center bg-slate-50 p-6 sm:p-10">
-          <div className="w-full max-w-md">
-            <div className="mb-8 lg:hidden">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white">
-                  <ShieldCheck size={24} />
+          <div className="grid gap-6 lg:grid-cols-3">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 lg:col-span-2">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <Building2 size={20} />
                 </div>
 
                 <div>
-                  <p className="text-xl font-bold text-slate-900">
-                    RxNexus
-                  </p>
+                  <h2 className="font-semibold text-slate-900">
+                    Organization
+                  </h2>
 
-                  <p className="text-xs text-slate-400">
-                    Connect. Resolve. Complete.
+                  <p className="text-sm text-slate-500">
+                    Practice information
                   </p>
                 </div>
               </div>
-            </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-xl sm:p-9">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-slate-900">
-                  {isSignUp
-                    ? "Create your account"
-                    : "Welcome back"}
-                </h2>
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Organization Name
+                  </label>
 
-                <p className="mt-2 text-sm text-slate-500">
-                  {isSignUp
-                    ? "Create a secure RxNexus demo account."
-                    : "Sign in to continue to your RxNexus workspace."}
-                </p>
+                  <input
+                    value={organization}
+                    onChange={(e) =>
+                      setOrganization(e.target.value)
+                    }
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Organization Type
+                  </label>
+
+                  <input
+                    value="Physician Practice"
+                    readOnly
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-6">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <Users size={20} />
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-slate-900">
+                    Your Profile
+                  </h2>
+
+                  <p className="text-sm text-slate-500">
+                    Account information
+                  </p>
+                </div>
               </div>
 
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-5"
-              >
-                {isSignUp && (
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
-                      Full Name
-                    </label>
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Full Name
+                  </label>
 
-                    <div className="relative">
-                      <User
-                        size={18}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-
-                      <input
-                        type="text"
-                        value={fullName}
-                        onChange={(e) =>
-                          setFullName(e.target.value)
-                        }
-                        placeholder="Enter your full name"
-                        className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
+                  <input
+                    value={fullName}
+                    onChange={(e) =>
+                      setFullName(e.target.value)
+                    }
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                  />
+                </div>
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">
                     Email
                   </label>
 
-                  <div className="relative">
-                    <Mail
-                      size={18}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) =>
-                        setEmail(e.target.value)
-                      }
-                      placeholder="you@example.com"
-                      className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      required
-                    />
-                  </div>
+                  <input
+                    value={email}
+                    readOnly
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none"
+                  />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">
-                    Password
+                    Role
                   </label>
 
-                  <div className="relative">
-                    <LockKeyhole
-                      size={18}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
+                  <input
+                    value={role}
+                    readOnly
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none"
+                  />
+                </div>
+              </div>
+            </section>
 
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) =>
-                        setPassword(e.target.value)
-                      }
-                      placeholder="Enter your password"
-                      className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      required
-                      minLength={6}
-                    />
-                  </div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 lg:col-span-2">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                  <Brain size={20} />
                 </div>
 
-                {error && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {error}
-                  </div>
-                )}
+                <div>
+                  <h2 className="font-semibold text-slate-900">
+                    AI Workflow
+                  </h2>
 
-                {message && (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                    {message}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading ? (
-                    <Loader2
-                      size={18}
-                      className="animate-spin"
-                    />
-                  ) : (
-                    <ArrowRight size={18} />
-                  )}
-
-                  {loading
-                    ? "Please wait..."
-                    : isSignUp
-                    ? "Create Account"
-                    : "Sign In"}
-                </button>
-              </form>
-
-              <div className="my-7 flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-
-                <span className="text-xs text-slate-400">
-                  OR
-                </span>
-
-                <div className="h-px flex-1 bg-slate-200" />
+                  <p className="text-sm text-slate-500">
+                    Configure AI-assisted operations
+                  </p>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={toggleMode}
-                className="w-full rounded-lg border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                {isSignUp
-                  ? "Already have an account? Sign In"
-                  : "New to RxNexus? Create Account"}
-              </button>
-            </div>
+              <div className="space-y-5">
+                <ToggleRow
+                  title="AI Resolution Recommendations"
+                  description="Analyze refill blockers and suggest the next operational action."
+                  enabled={aiRecommendations}
+                  onChange={setAiRecommendations}
+                />
 
-            <p className="mt-6 text-center text-xs leading-5 text-slate-400">
-              RxNexus is a synthetic demonstration platform.
-              Do not enter real patient or clinical information.
-            </p>
+                <ToggleRow
+                  title="Automatic Escalation"
+                  description="Escalate unresolved refill requests when configured thresholds are reached."
+                  enabled={automaticEscalation}
+                  onChange={setAutomaticEscalation}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-6">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                  <Bell size={20} />
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-slate-900">
+                    Notifications
+                  </h2>
+
+                  <p className="text-sm text-slate-500">
+                    Communication preferences
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <ToggleRow
+                  title="Patient Notifications"
+                  description="Send refill status updates to patients."
+                  enabled={patientNotifications}
+                  onChange={setPatientNotifications}
+                />
+
+                <ToggleRow
+                  title="Email Notifications"
+                  description="Receive operational alerts by email."
+                  enabled={emailNotifications}
+                  onChange={setEmailNotifications}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 lg:col-span-3">
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                  <ShieldCheck size={20} />
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-slate-900">
+                    Security and Trust
+                  </h2>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    RxNexus is currently running as a synthetic
+                    demonstration environment. No real patient,
+                    prescription, insurance, or pharmacy data should
+                    be entered into this challenge application.
+                  </p>
+
+                  <div className="mt-4 inline-flex rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+                    Synthetic Demo Environment
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
-        </section>
+
+          <div className="mt-6 flex items-center justify-end gap-4">
+            {message && (
+              <p className="text-sm font-medium text-emerald-600">
+                {message}
+              </p>
+            )}
+
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saving ? (
+                <Loader2
+                  size={17}
+                  className="animate-spin"
+                />
+              ) : (
+                <Save size={17} />
+              )}
+
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
+  );
+}
+
+function ToggleRow({
+  title,
+  description,
+  enabled,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  enabled: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-6">
+      <div>
+        <p className="text-sm font-medium text-slate-800">
+          {title}
+        </p>
+
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          {description}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onChange(!enabled)}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+          enabled ? "bg-blue-600" : "bg-slate-300"
+        }`}
+      >
+        <span
+          className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${
+            enabled ? "left-6" : "left-1"
+          }`}
+        />
+      </button>
+    </div>
   );
 }

@@ -1,6 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import {
+  FormEvent,
+  Suspense,
+  useState,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
@@ -13,7 +17,7 @@ import {
 
 import { createClient } from "../../lib/supabase";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -142,23 +146,17 @@ export default function LoginPage() {
               <div className="mt-8 space-y-4 text-sm text-slate-300">
                 <div className="flex items-center gap-3">
                   <span className="h-2 w-2 rounded-full bg-blue-400" />
-                  <span>
-                    See why a refill is stuck
-                  </span>
+                  <span>See why a refill is stuck</span>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <span className="h-2 w-2 rounded-full bg-blue-400" />
-                  <span>
-                    Know who needs to act
-                  </span>
+                  <span>Know who needs to act</span>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <span className="h-2 w-2 rounded-full bg-blue-400" />
-                  <span>
-                    Track every workflow step
-                  </span>
+                  <span>Track every workflow step</span>
                 </div>
               </div>
             </div>
@@ -361,5 +359,19 @@ export default function LoginPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+          Loading RxNexus...
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
